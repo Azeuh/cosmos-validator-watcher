@@ -11,6 +11,8 @@ import (
 	"github.com/cometbft/cometbft/rpc/client/http"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
+	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
+	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/types/query"
 	staking "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/fatih/color"
@@ -48,6 +50,7 @@ func RunFunc(cCtx *cli.Context) error {
 		validators   = cCtx.StringSlice("validator")
 		webhookURL   = cCtx.String("webhook-url")
 		xGov         = cCtx.String("x-gov")
+		pubkeyType	 = cCtx.String("pubkey-type")
 	)
 
 	//
@@ -79,7 +82,7 @@ func RunFunc(cCtx *cli.Context) error {
 	}
 
 	// Parse validators into name & address
-	trackedValidators, err := createTrackedValidators(ctx, pool, validators, noStaking)
+	trackedValidators, err := createTrackedValidators(ctx, pool, validators, noStaking, pubkeyType)
 	if err != nil {
 		return err
 	}
@@ -111,6 +114,7 @@ func RunFunc(cCtx *cli.Context) error {
 		validatorsWatcher := watcher.NewValidatorsWatcher(trackedValidators, metrics, pool, watcher.ValidatorsWatcherOptions{
 			Denom:         denom,
 			DenomExponent: denomExpon,
+			PubKeyType:	   pubkeyType,
 		})
 		errg.Go(func() error {
 			return validatorsWatcher.Start(ctx)
@@ -280,7 +284,7 @@ func createNodePool(ctx context.Context, nodes []string) (*rpc.Pool, error) {
 	return rpc.NewPool(chainID, rpcNodes), nil
 }
 
-func createTrackedValidators(ctx context.Context, pool *rpc.Pool, validators []string, noStaking bool) ([]watcher.TrackedValidator, error) {
+func createTrackedValidators(ctx context.Context, pool *rpc.Pool, validators []string, noStaking bool, pubkeyType string) ([]watcher.TrackedValidator, error) {
 	var stakingValidators []staking.Validator
 	if !noStaking {
 		node := pool.GetSyncedNode()
@@ -302,14 +306,19 @@ func createTrackedValidators(ctx context.Context, pool *rpc.Pool, validators []s
 		val := watcher.ParseValidator(v)
 
 		for _, stakingVal := range stakingValidators {
-			pubkey := ed25519.PubKey{Key: stakingVal.ConsensusPubkey.Value[2:]}
+			var pubkey cryptotypes.PubKey 
+			if pubkeyType == "ed25519" {
+				pubkey = &ed25519.PubKey{Key: stakingVal.ConsensusPubkey.Value[2:]}
+			} else if pubkeyType == "secp256k1" {
+				pubkey = &secp256k1.PubKey{Key: stakingVal.ConsensusPubkey.Value[2:]}
+			}
 			address := pubkey.Address().String()
 			if address == val.Address {
 				val.Moniker = stakingVal.Description.Moniker
 				val.OperatorAddress = stakingVal.OperatorAddress
 			}
 		}
-
+		
 		log.Info().
 			Str("alias", val.Name).
 			Str("moniker", val.Moniker).

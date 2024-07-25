@@ -8,6 +8,8 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
+	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
+	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/types/query"
 	staking "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/kilnfi/cosmos-validator-watcher/pkg/metrics"
@@ -26,6 +28,7 @@ type ValidatorsWatcher struct {
 type ValidatorsWatcherOptions struct {
 	Denom         string
 	DenomExponent uint
+	PubKeyType	  string
 }
 
 func NewValidatorsWatcher(validators []TrackedValidator, metrics *metrics.Metrics, pool *rpc.Pool, opts ValidatorsWatcherOptions) *ValidatorsWatcher {
@@ -98,7 +101,12 @@ func (w *ValidatorsWatcher) handleValidators(chainID string, validators []stakin
 		name := tracked.Name
 
 		for i, val := range validators {
-			pubkey := ed25519.PubKey{Key: val.ConsensusPubkey.Value[2:]}
+			var pubkey cryptotypes.PubKey 
+			if w.opts.PubKeyType == "ed25519" {
+				pubkey = &ed25519.PubKey{Key: val.ConsensusPubkey.Value[2:]}
+			} else if w.opts.PubKeyType == "secp256k1" {
+				pubkey = &secp256k1.PubKey{Key: val.ConsensusPubkey.Value[2:]}			
+			}
 			address := pubkey.Address().String()
 
 			if tracked.Address == address {
