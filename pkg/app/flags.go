@@ -82,4 +82,9 @@ var Flags = []cli.Flag{
 		Usage: "version of the gov module to use (v1|v1beta1)",
 		Value: "v1",
 	},
+	&cli.StringFlag{
+		Name:  "pubkey-type",
+		Usage: "type of the public key (ed25519|secp256k1)",
+		Value: "ed25519",
+	},
 }

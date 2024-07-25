@@ -76,6 +76,7 @@ GLOBAL OPTIONS:
    --no-upgrade                             disable calls to upgrade module (for chains created without the upgrade module) (default: false)
    --denom value                            denom used in metrics label (eg. atom or uatom)
    --denom-exponent value                   denom exponent (eg. 6 for atom, 1 for uatom) (default: 0)
+   --pubkey-type value                      type of key used on this chain (ed25519|secp256k1) (default: "ed25519")
    --start-timeout value                    timeout to wait on startup for one node to be ready (default: 10s)
    --stop-timeout value                     timeout to wait on stop (default: 10s)
    --validator value [ --validator value ]  validator address(es) to track (use :my-label to add a custom label in metrics & ouput)
@@ -138,6 +139,7 @@ Any blockchains based on the cosmos-sdk should work:
 - persistence
 - dymension
 - zetachain
+- band
 - ...
 
 This app is using the [CometBFT library](https://github.com/cometbft/cometbft/) (successor of Tendermint) as well as the `x/staking` module from the [Cosmos-SDK](https://github.com/cosmos/cosmos-sdk).
